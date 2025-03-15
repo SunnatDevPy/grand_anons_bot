@@ -13,7 +13,6 @@ admin_1 = 5649321700
 admin_2 = 1353080275
 
 
-
 @start_router.message(CommandStart())
 async def command_start(message: Message, state: FSMContext, bot: Bot):
     user = await BotUser.get(message.from_user.id)
@@ -49,7 +48,7 @@ async def command_start(message: Message, state: FSMContext, bot: Bot):
             count: AdminPanel = await AdminPanel.get(1)
             if count == None:
                 await AdminPanel.create(count_anons=0)
-            await message.answer(text,parse_mode="HTML" , reply_markup=menu(admin=True))
+            await message.answer(text, parse_mode="HTML", reply_markup=menu(admin=True))
         else:
             await message.answer(text, reply_markup=menu())
 
@@ -86,8 +85,11 @@ async def leagues_handler(call: CallbackQuery, bot: Bot, state: FSMContext):
     if data == 'static':
         users = await BotUser.count()
         channel = await Channels.count()
+        count_anons: AdminPanel = await AdminPanel.get(1)
         await call.message.answer(
-            html.bold(f'Admin\nUserlar soni: <b>{users},\nKanallar soni: {channel}</b>'), parse_mode='HTML')
+            html.bold(
+                f'Admin\nUserlar soni: <b>{users},\nKanallar soni: {channel}</b>\n<b>Anons soni: {count_anons.count_anons}'),
+            parse_mode='HTML')
     elif data == 'subscribe':
         channels_ = await Channels.all()
         if channels_:
