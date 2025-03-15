@@ -3,7 +3,7 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
-from bot.buttuns.inline import channels, menu, send_text, settings, anons, subscribe_btn, shop_btn
+from bot.buttuns.inline import channels, menu, settings, anons, subscribe_btn, shop_btn
 from models import BotUser, Channels
 from models.users import AdminPanel
 
@@ -17,6 +17,18 @@ admin_2 = 1353080275
 async def command_start(message: Message, state: FSMContext, bot: Bot):
     user = await BotUser.get(message.from_user.id)
     from_user = message.from_user
+    text = f'''
+Здравствуйте 🙋 {from_user.first_name} 
+
+🤖 Бот может отправить канал ваше разные обявения  из игра Grand Mobile
+⚙ Пример: 🚗Транспорт, 🏢Бызнеси, 🏠Жилё имушество и другие
+
+Подерживайце нас, скоро добавим новые функции (Куплю, Ишу игроков, премиум обявление) 
+
+После завершения наше модераторы проверяют и публикуют на канал, 
+Если какие либо ошибки или предложение на связи: @SunnatiPy
+По поводу реклама: @SunnatiPy
+    '''
     if not user:
         try:
             await BotUser.create(id=from_user.id, first_name=from_user.first_name,
@@ -28,17 +40,17 @@ async def command_start(message: Message, state: FSMContext, bot: Bot):
             count: AdminPanel = await AdminPanel.get(1)
             if count == None:
                 await AdminPanel.create(count_anons=0)
-            await message.answer(f' Admin {from_user.first_name}', reply_markup=menu(admin=True))
+            await message.answer(text, reply_markup=menu(admin=True))
         else:
-            await message.answer(f" {from_user.first_name}", reply_markup=menu())
+            await message.answer(text, reply_markup=menu())
     else:
         if from_user.id in [5649321700, ]:
             count: AdminPanel = await AdminPanel.get(1)
             if count == None:
                 await AdminPanel.create(count_anons=0)
-            await message.answer(f' Admin {from_user.first_name}', reply_markup=menu(admin=True))
+            await message.answer(text, reply_markup=menu(admin=True))
         else:
-            await message.answer(f"{from_user.first_name}", reply_markup=menu())
+            await message.answer(text, reply_markup=menu())
 
 
 @start_router.callback_query(F.data.startswith("menu_"))
@@ -75,9 +87,6 @@ async def leagues_handler(call: CallbackQuery, bot: Bot, state: FSMContext):
         channel = await Channels.count()
         await call.message.answer(
             html.bold(f'Admin\nUserlar soni: <b>{users},\nKanallar soni: {channel}</b>'), parse_mode='HTML')
-    elif data == 'send':
-        await call.message.edit_text(html.bold("Xabarni yuborish turini tanlang❓"), parse_mode='HTML',
-                                     reply_markup=send_text())
     elif data == 'subscribe':
         channels_ = await Channels.all()
         if channels_:

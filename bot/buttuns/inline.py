@@ -95,6 +95,12 @@ def shop_btn():
     return ikb.as_markup()
 
 
+def channel_url():
+    ikb = InlineKeyboardBuilder()
+    ikb.row(InlineKeyboardButton(text='Перейти в канал', url='https://t.me/grand_mobile_anons'))
+    return ikb.as_markup()
+
+
 def server_btn():
     ikb = InlineKeyboardBuilder()
     i = 1

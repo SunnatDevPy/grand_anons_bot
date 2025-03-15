@@ -5,7 +5,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
-from bot.buttuns.inline import business_btn, anons, contact, server_btn, confirm_inl, menu, torg_btn, confirm_text
+from bot.buttuns.inline import business_btn, anons, contact, server_btn, confirm_inl, menu, torg_btn, confirm_text, \
+    channel_url
 from bot.state import ShopState, ShopStateHome
 from bot.utils import detail_business
 from models.users import AdminPanel
@@ -166,8 +167,8 @@ async def command_start(call: CallbackQuery, state: FSMContext, bot: Bot):
         await AdminPanel.update(1, count_anons=count.count_anons + 1)
         res = await state.get_data()
         detail = detail_business(call.from_user, res)
-        await bot.send_photo(5649321700, detail[0], caption=detail[-1], reply_markup=confirm_text(), parse_mode="HTML")
-        await call.message.answer("Обявления отправлено к модераторам скоро в канал постим спасиба ✅")
+        await bot.send_photo(5649321700, detail[0], caption=detail[-1], parse_mode="HTML")
+        await call.message.answer("Объявление отправлено к модераторам, скоро оно появится в канале. Спасибо ✅",reply_markup=channel_url())
         await call.message.answer("Главное меню", reply_markup=menu())
     else:
         await call.message.answer("Отменен ❌")

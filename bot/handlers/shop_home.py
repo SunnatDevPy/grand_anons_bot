@@ -4,7 +4,7 @@ from aiogram import Router, Bot, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 
-from bot.buttuns.inline import contact, server_btn, confirm_inl, menu, torg_btn, confirm_text
+from bot.buttuns.inline import contact, server_btn, confirm_inl, menu, torg_btn, confirm_text, channel_url
 from bot.state import ShopStateHome
 from bot.utils import detail_home
 from models.users import AdminPanel
@@ -135,8 +135,8 @@ async def command_start(call: CallbackQuery, state: FSMContext, bot: Bot):
         await AdminPanel.update(1, count_anons=count.count_anons + 1)
         res = await state.get_data()
         detail = detail_home(call.from_user, res)
-        await bot.send_photo(5649321700, detail[0], caption=detail[-1], reply_markup=confirm_text(), parse_mode="HTML")
-        await call.message.answer("Обявления отправлено к модераторам скоро в канал постим спасиба ✅")
+        await bot.send_photo(5649321700, detail[0], caption=detail[-1], parse_mode="HTML")
+        await call.message.answer("Объявление отправлено к модераторам, скоро оно появится в канале. Спасибо ✅",reply_markup=channel_url())
         await call.message.answer("Главное меню", reply_markup=menu())
     else:
         await call.message.answer("Отменен ❌")
@@ -148,7 +148,22 @@ async def command_start(call: CallbackQuery, state: FSMContext, bot: Bot):
 async def command_start(call: CallbackQuery, state: FSMContext, bot: Bot):
     data = call.data.split('_')
     if data == 'confirm':
-        pass
+        count: AdminPanel = await AdminPanel.get(1)
+        await AdminPanel.update(1, count_anons=count.count_anons + 1)
+
+        # Получаем фото и текст из сообщения
+        photo = call.message.photo[-1].file_id if call.message.photo else None
+        caption = call.message.caption
+
+        if photo:
+            await bot.send_photo(chat_id=-1002229527376, photo=photo, caption=caption, parse_mode="HTML",
+                                 reply_markup=None)
+        else:
+            await bot.send_message(chat_id=-1002229527376, text=caption, parse_mode="HTML", reply_markup=None)
+
+        await call.message.answer("Объявление отправлено к модераторам, скоро оно появится в канале. Спасибо ✅")
     else:
-        await call.message.delete()
-        await call.message.answer("Главное меню", reply_markup=menu(admin=True))
+        await call.message.answer("Отменено ❌")
+
+    await call.message.answer("Главное меню", reply_markup=menu())
+    await state.clear()
