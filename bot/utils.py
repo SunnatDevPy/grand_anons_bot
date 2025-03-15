@@ -35,6 +35,7 @@ def detail_shar(from_user, data):
     if details:
         detail = "⚙ <b>Улучшение</b>\n"
 
+
         text_detail = "\n".join(
             [f"🔧 {key}: {format_circles(int(value))}" if int(value) > 0 else f"🔧 {key}: ❌ Нет улучшения"
              for key, value in details.items() if key != 'confirm']

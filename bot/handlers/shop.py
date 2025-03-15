@@ -121,9 +121,12 @@ async def command_start(call: CallbackQuery, state: FSMContext, bot: Bot):
         selected_parts.pop(detail)
     else:
         selected_parts[detail] = level
-    await state.update_data(selected_parts=selected_parts)
+        await state.update_data(selected_parts=selected_parts)
 
     if detail == 'confirm':
+        final_selection = {part: selected_parts.get(part, "0") for part in all_parts}
+        await state.update_data(selected_parts=final_selection)
+
         await state.set_state(ShopState.count_owner)
         await call.message.answer(f"Введите число водителя в формате целое число ⚠")
     else:

@@ -57,7 +57,6 @@ async def command_start(call: CallbackQuery, state: FSMContext, bot: Bot):
         await call.message.answer(f"Вводите названия {data}")
 
 
-
 @shop_business_router.callback_query(ShopRouterBiznes.name)
 async def command_start(call: CallbackQuery, state: FSMContext, bot: Bot):
     data = call.data.split('_')[-1]
@@ -168,7 +167,8 @@ async def command_start(call: CallbackQuery, state: FSMContext, bot: Bot):
         res = await state.get_data()
         detail = detail_business(call.from_user, res)
         await bot.send_photo(5649321700, detail[0], caption=detail[-1], parse_mode="HTML")
-        await call.message.answer("Объявление отправлено к модераторам, скоро оно появится в канале. Спасибо ✅",reply_markup=channel_url())
+        await call.message.answer("Объявление отправлено к модераторам, скоро оно появится в канале. Спасибо ✅",
+                                  reply_markup=channel_url())
         await call.message.answer("Главное меню", reply_markup=menu())
     else:
         await call.message.answer("Отменен ❌")
