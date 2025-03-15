@@ -1,8 +1,3 @@
-# data = [[{"text": "\ud83c\udfa5 JONLI EFIRNI KO'RISH", "url": "https://t.me/+bBuPSzMtufpkZTZi"}], [{"text": "\ud83c\uddfa\ud83c\uddff O'ZBEKCHA SHARH", "url": "https://t.me/+bBuPSzMtufpkZTZi"}]]
-#
-# for i in data:
-#     print(i[0].get('url'))
-
 
 def detail_business(from_user, data):
     username = f"🏌 Username: @{from_user.username}" if from_user.username else ''
@@ -38,7 +33,7 @@ def detail_shar(from_user, data):
         return " ".join(["🟡" if i < level else "⚪" for i in range(max_level)])
 
     if details:
-        detail = "⚙ <b>Улучшение</b>"
+        detail = "⚙ <b>Улучшение</b>\n"
 
         text_detail = "\n".join(
             [f"🔧 {key}: {format_circles(int(value))}" if int(value) > 0 else f"🔧 {key}: ❌ Нет улучшения"
