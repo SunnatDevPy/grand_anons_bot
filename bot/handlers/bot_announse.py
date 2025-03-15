@@ -1,0 +1,189 @@
+import asyncio
+import re
+
+from aiogram import Router, F, Bot
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
+
+from bot.buttuns.inline import settings, send_text_type, link_from_channel
+from models import BotUser, Channels
+
+bot_anons_router = Router()
+
+
+def Find(string):
+    regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
+    url = re.findall(regex, string)
+    return [x[0] for x in url]
+
+
+class SendTextState(StatesGroup):
+    text = State()
+    video = State()
+    link = State()
+    confirm = State()
+
+
+async def send_message_to_users(bot, users, message, text, markup):
+    tasks = []
+    good = 0
+    block = 0
+
+    for user in users:
+        tasks.append(send_individual_message(bot, user.id, message, text, markup))
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for result in results:
+        if isinstance(result, Exception):
+            block += 1
+        else:
+            good += 1
+
+    await message.answer(f"📊 Xabar yuborish statistikasi:\n✅ Qabul qildi: {good}, 🚫 Block qilgandlar: {block}")
+    print(block, good)
+
+
+async def send_individual_message(bot, chat_id, message, text, markup):
+    try:
+        if message.photo:
+            await bot.send_photo(chat_id=chat_id, photo=message.photo[-1].file_id, caption=text, reply_markup=markup)
+        elif message.video:
+            await bot.send_video(chat_id=chat_id, video=message.video.file_id, caption=text, reply_markup=markup)
+        elif text:
+            await bot.send_message(chat_id=chat_id, text=text, reply_markup=markup)
+        return True
+    except Exception:
+        return False
+
+
+@bot_anons_router.callback_query(F.data.startswith('send_'))
+async def leagues_handler(call: CallbackQuery, state: FSMContext):
+    data = call.data.split('_')[-1]
+    await call.answer()
+    if data == 'user':
+        await call.message.edit_text("Userlar uchun xabar yuborish usulini tanlang",
+                                     reply_markup=send_text_type('user'))
+    if data == 'channel':
+        await call.message.edit_text("Kanallar uchun xabar yuborish usulini tanlang",
+                                     reply_markup=send_text_type('channel'))
+    if data == 'back':
+        await state.clear()
+        await call.message.edit_text("Settings", reply_markup=settings())
+
+
+@bot_anons_router.callback_query(F.data.startswith('types_'))
+async def leagues_handler(call: CallbackQuery, state: FSMContext):
+    data = call.data.split('_')
+    await call.answer()
+    await state.set_state(SendTextState.text)
+    if data[1] == 'forward':
+        await call.message.answer("Tayyor xabarni yuboring")
+        await state.update_data(send_text=data[-1], status=data[1])
+    if data[1] == 'create':
+        await call.message.answer("Rasim, Video xabar kiriting")
+        await state.update_data(send_text=data[-1], status=data[1])
+    if data == 'back':
+        await state.clear()
+        await call.message.edit_text("Settings", reply_markup=settings())
+
+
+@bot_anons_router.message(SendTextState.text)
+async def leagues_handler(message: Message, state: FSMContext, bot: Bot):
+    data = await state.get_data()
+    if data.get('status') == 'forward':
+
+        text = message.text or message.caption
+        reply_markup = message.reply_markup
+
+        if reply_markup and isinstance(reply_markup, InlineKeyboardMarkup):
+            buttons = reply_markup.inline_keyboard
+        else:
+            buttons = []
+
+        markup = InlineKeyboardMarkup(inline_keyboard=buttons) if buttons else None
+        send_text = data.get('send_text')
+
+        await message.answer("✅ Ozgina kuting ⌛!")
+
+        if send_text == 'user':
+            users = await BotUser.all()
+        else:
+            users = await Channels.all()
+
+        await send_message_to_users(bot, users, message, text, markup)
+    else:
+        if message.photo:
+            await state.set_state(SendTextState.video)
+            await state.update_data(photo=message.photo[-1].file_id)
+            await message.answer('Text xabarni kiriting')
+        elif message.video:
+            await state.set_state(SendTextState.video)
+            await state.update_data(video=message.video.file_id)
+            await message.answer('Text xabarni kiriting')
+        elif message.text:
+            await state.set_state(SendTextState.link)
+            await state.update_data(text=message.text)
+            await message.answer("Link jo'nating")
+
+
+@bot_anons_router.message(SendTextState.text)
+async def leagues_handler(message: Message, state: FSMContext):
+    await state.update_data(text=message.text)
+    await state.set_state(SendTextState.link)
+    await message.answer(
+        "Knopka va linkni (<b> Knopka - link </b>) formatda yuboring yoki <b>'✅ Tugatish'</b> tugmani bosing.",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="✅ Tugatish", callback_data="finish")]]
+        ))
+
+
+@bot_anons_router.message(SendTextState.link)
+async def leagues_handler(message: Message, state: FSMContext):
+    data = await state.get_data()
+    links = data.get("links", [])
+
+    if " - " in message.text:
+        btn_text, btn_url = message.text.split(" - ", maxsplit=1)
+
+        if Find(message.text):
+            links.append((btn_text.strip(), btn_url.strip()))
+            await state.update_data(links=links)
+
+            await message.answer(
+                f"✅ Link qo'shildi! -> {btn_text} - {btn_url.strip()} .\nYana qo'shing yoki <b>'✅ Tugatish'</b>  tugmani bosing",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup(
+                    inline_keyboard=[[InlineKeyboardButton(text="✅ Tugatish", callback_data="finish_")]]
+                ))
+        else:
+            await message.answer("Link notog'ri formatda")
+    else:
+        await message.answer("❌ Format notog'ri. Knopka va linkni (<b> Knopka - link </b>) formatda yuboring.")
+
+
+@bot_anons_router.callback_query(lambda c: c.data == "finish_")
+async def finish_sending(callback: CallbackQuery, bot: Bot, state: FSMContext):
+    data = await state.get_data()
+    photo = data.get("photo")
+    text = data.get("text")
+    links = data.get("links", [])
+    block = 0
+    good = 0
+    users: list[BotUser] = await BotUser.all()
+    for i in users:
+        try:
+            await bot.send_photo(i.id, photo=photo, caption=text, reply_markup=link_from_channel(links))
+            good += 1
+        except Exception as e:
+            block += 1
+    else:
+        await callback.message.answer(
+            f"Xabar yuborish statistikasi\n Qabul qildi: {good},\nBlock qilgandlar: {block}")
+        try:
+            await callback.message.edit_text("Settings", reply_markup=settings())
+        except:
+            await callback.message.answer("Settings", reply_markup=settings())
+    await state.clear()
