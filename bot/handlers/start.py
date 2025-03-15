@@ -88,7 +88,7 @@ async def leagues_handler(call: CallbackQuery, bot: Bot, state: FSMContext):
         count_anons: AdminPanel = await AdminPanel.get(1)
         await call.message.answer(
             html.bold(
-                f'Admin\nUserlar soni: <b>{users},\nKanallar soni: {channel}</b>\n<b>Anons soni: {count_anons.count_anons}'),
+                f'Admin\nUserlar soni: <b>{users},\nKanallar soni: {channel}</b>\n<b>Anons soni</b>: {count_anons.count_anons}'),
             parse_mode='HTML')
     elif data == 'subscribe':
         channels_ = await Channels.all()
